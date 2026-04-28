@@ -1,4 +1,4 @@
-import { FoodItem } from './types';
+import { FoodItem } from './types/types';
 
 export const FOOD_ITEMS: FoodItem[] = [
   // 🔥 Smoky BBQ

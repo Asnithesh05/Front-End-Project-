@@ -15,7 +15,7 @@ export interface CartItem extends FoodItem {
   quantity: number;
 }
 
-export type Screen = 'home' | 'menu' | 'order-status' | 'dashboard' | 'admin-login' | 'customer-login' | 'profile';
+export type Screen = 'home' | 'menu' | 'order-status' | 'dashboard' | 'admin-login' | 'customer-login' | 'profile' | 'cart';
 
 export interface Feedback {
   id: string;
@@ -49,4 +49,7 @@ export interface StaffMember {
   role: string;
   status: 'on-shift' | 'off-shift' | 'break';
   avatar: string;
+  phone?: string;
+  email?: string;
+  address?: string;
 }
