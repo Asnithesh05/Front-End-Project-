@@ -13,21 +13,38 @@ interface FoodCardProps {
   onUpdateQuantity: (id: string, delta: number) => void;
 }
 
-export const FoodCard: React.FC<FoodCardProps> = ({ item, idx, cartItem, onAddToCart, onUpdateQuantity }) => (
-  <motion.div 
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: idx * 0.05 }}
-    className="group relative glass-panel rounded-lg p-3 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(255,87,51,0.15)] hover:-translate-y-2 border border-white/5"
-  >
-    <div className="relative h-64 w-full overflow-hidden rounded-lg mb-4">
-      <img 
-        alt={item.name} 
-        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-        src={item.image}
-        referrerPolicy="no-referrer"
-      />
-      {item.isBestseller && (
+const optimizeImageUrl = (url: string) => {
+  if (url.includes('lh3.googleusercontent.com')) {
+    // Append size and quality parameters for Google-hosted images
+    return `${url}=w600-h450-n-rj-v1`;
+  }
+  if (url.includes('picsum.photos')) {
+    // Use smaller sizes for picsum
+    return url.replace('/800/600', '/600/450');
+  }
+  return url;
+};
+
+export const FoodCard: React.FC<FoodCardProps> = ({ item, idx, cartItem, onAddToCart, onUpdateQuantity }) => {
+  const optimizedImage = optimizeImageUrl(item.image);
+  
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: idx * 0.05 }}
+      className="group relative glass-panel rounded-lg p-3 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(255,87,51,0.15)] hover:-translate-y-2 border border-white/5"
+    >
+      <div className="relative h-64 w-full overflow-hidden rounded-lg mb-4 bg-surface-container-low">
+        <img 
+          alt={item.name} 
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+          src={optimizedImage}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+        />
+        {item.isBestseller && (
         <div className="absolute top-3 left-3 px-3 py-1 rounded-full bg-primary-container/90 backdrop-blur-md">
           <span className="text-[10px] font-black text-on-primary-fixed uppercase tracking-wider">Bestseller</span>
         </div>
@@ -61,5 +78,6 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, idx, cartItem, onAddTo
         </button>
       )}
     </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
