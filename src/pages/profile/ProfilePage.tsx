@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { LogOut, Star, Package, Settings, ChevronRight, Send, User } from 'lucide-react';
+import { LogOut, Star, Package, Settings, ChevronRight, Send, User, ChevronDown } from 'lucide-react';
 import { ResponsiveContainer } from '../../components/global/ResponsiveContainer';
 import { GlassCard } from '../../components/global/GlassCard';
 import { Feedback } from '../../types/types';
@@ -16,12 +16,45 @@ export const ProfilePage = ({ onFeedback, onLogout }: ProfilePageProps) => {
   const [feedbackComment, setFeedbackComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   const history = [
-    { id: '102k', items: '2x Truffle Smash', status: 'Delivered', date: 'Yesterday' },
-    { id: '101j', items: '1x Neon Al Pastor', status: 'Canceled', date: '3 days ago' },
-    { id: '100h', items: '3x Thermal Grain Bowl', status: 'Delivered', date: 'Last week' }
+    { 
+      id: '102k', 
+      items: '2x Truffle Smash', 
+      status: 'Delivered', 
+      date: 'Yesterday',
+      total: 32.00,
+      detailedItems: [
+        { name: 'Truffle Smash Burger', quantity: 2, price: 14.00, img: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=400&q=80' },
+        { name: 'Spicy Aioli Dip', quantity: 1, price: 4.00, img: 'https://images.unsplash.com/photo-1470333732907-95274e7fcff5?w=400&q=80' }
+      ]
+    },
+    { 
+      id: '101j', 
+      items: '1x Neon Al Pastor', 
+      status: 'Canceled', 
+      date: '3 days ago',
+      total: 18.00,
+      detailedItems: [
+        { name: 'Neon Al Pastor Tacos', quantity: 1, price: 18.00, img: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&q=80' }
+      ]
+    },
+    { 
+      id: '100h', 
+      items: '3x Thermal Grain Bowl', 
+      status: 'Delivered', 
+      date: 'Last week',
+      total: 45.00,
+      detailedItems: [
+        { name: 'Thermal Grain Bowl', quantity: 3, price: 15.00, img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=80' }
+      ]
+    }
   ];
+
+  const toggleOrderExpansion = (id: string) => {
+    setExpandedOrderId(prev => prev === id ? null : id);
+  };
 
   const handleSubmitFeedback = (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,35 +180,87 @@ export const ProfilePage = ({ onFeedback, onLogout }: ProfilePageProps) => {
             <div className="space-y-4">
               {history
                 .filter(h => activeHistoryTab === 'all' || h.status === 'Delivered')
-                .map((item, i) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                >
-                  <GlassCard className="p-6 flex items-center justify-between group cursor-pointer hover:border-white/20">
-                    <div className="flex items-center gap-6">
-                      <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center font-black italic text-primary-container text-sm">
-                        #{item.id}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-white uppercase tracking-tight">{item.items}</h4>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-[10px] text-white/30 uppercase tracking-[0.1em]">{item.date}</span>
-                          <span className="w-1 h-1 rounded-full bg-white/10" />
-                          <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${item.status === 'Delivered' ? 'text-green-500' : 'text-red-400'}`}>
-                            {item.status}
-                          </span>
+                .map((item, i) => {
+                  const isExpanded = expandedOrderId === item.id;
+                  return (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                    >
+                      <GlassCard 
+                        className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'ring-1 ring-primary-container/20' : 'hover:border-white/20'}`}
+                      >
+                        <div 
+                          onClick={() => toggleOrderExpansion(item.id)}
+                          className="p-6 flex items-center justify-between group cursor-pointer"
+                        >
+                          <div className="flex items-center gap-6">
+                            <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center font-black italic text-primary-container text-sm">
+                              #{item.id}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-white uppercase tracking-tight">{item.items}</h4>
+                              <div className="flex items-center gap-3 mt-1">
+                                <span className="text-[10px] text-white/30 uppercase tracking-[0.1em]">{item.date}</span>
+                                <span className="w-1 h-1 rounded-full bg-white/10" />
+                                <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${item.status === 'Delivered' ? 'text-green-500' : 'text-red-400'}`}>
+                                  {item.status}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <button 
+                            className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center transition-all ${isExpanded ? 'bg-primary-container/10 text-primary-container' : 'group-hover:bg-white/10'}`}
+                          >
+                            <ChevronDown size={18} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                          </button>
                         </div>
-                      </div>
-                    </div>
-                    <button className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-[#FF5722]/10 hover:text-[#FF5722]">
-                      <ChevronRight size={18} />
-                    </button>
-                  </GlassCard>
-                </motion.div>
-              ))}
+
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3, ease: 'easeInOut' }}
+                              className="border-t border-white/5"
+                            >
+                              <div className="p-6 pt-2 space-y-4">
+                                <div className="space-y-4">
+                                  {item.detailedItems.map((detail, idx) => (
+                                    <div key={idx} className="flex items-center justify-between group/item">
+                                      <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/5">
+                                          <img src={detail.img} alt={detail.name} className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500" />
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-bold text-white tracking-tight">{detail.name}</p>
+                                          <p className="text-[10px] text-white/40 uppercase tracking-widest">{detail.quantity}x • ${detail.price.toFixed(2)}</p>
+                                        </div>
+                                      </div>
+                                      <p className="font-mono text-sm text-primary-container">${(detail.quantity * detail.price).toFixed(2)}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Total Fueling Cost</span>
+                                  <span className="text-xl font-black italic tracking-tighter text-white">${item.total.toFixed(2)}</span>
+                                </div>
+                                {item.status === 'Delivered' && (
+                                  <button className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] transition-all">
+                                    Reorder This Supply
+                                  </button>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </GlassCard>
+                    </motion.div>
+                  );
+                })}
             </div>
           </div>
 
