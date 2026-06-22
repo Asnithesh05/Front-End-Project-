@@ -1,15 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Header } from './components/global/Header';
 import { BottomNav } from './components/global/BottomNav';
 import { FeedPage } from './pages/feed/FeedPage';
 import { MenuPage } from './pages/menu/MenuPage';
 import { OrderPage } from './pages/order/OrderPage';
-import { StaffingPage } from './pages/staff/StaffingPage';
-import { DashboardPage } from './pages/dashboard/DashboardPage';
+import { HearthCommandDashboard } from './pages/dashboard/HearthCommandDashboard';
+import { HQCRMPage } from './pages/admin/HQCRMPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { AdminLoginPage } from './pages/auth/AdminLoginPage';
+import { HQLoginPage } from './pages/auth/HQLoginPage';
 import { CartPage } from './pages/cart/CartPage';
 import { CartSheet } from './components/shared/CartSheet';
 import { 
@@ -20,11 +22,14 @@ import {
   FOOD_ITEMS, INITIAL_INVENTORY, INITIAL_STAFF, INITIAL_ORDERS 
 } from './data/mockData';
 
-export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+function AppContent() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isHQ, setIsHQ] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ type: 'navigate', screen: Screen } | { type: 'add-to-cart', item: FoodItem } | null>(null);
   
@@ -36,23 +41,45 @@ export default function App() {
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [inventory] = useState<InventoryItem[]>(INITIAL_INVENTORY);
   const [staff, setStaff] = useState<StaffMember[]>(INITIAL_STAFF);
-  const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
+
+  // Sync route to Screen type for Header/BottomNav highlighting
+  const currentScreen: Screen = useMemo(() => {
+    const path = location.pathname;
+    if (path === '/') return 'home';
+    if (path === '/menu') return 'menu';
+    if (path === '/order-status') return 'order-status';
+    if (path === '/admin') return 'dashboard';
+    if (path === '/admin-login') return 'admin-login';
+    if (path === '/login') return 'customer-login';
+    if (path === '/profile') return 'profile';
+    if (path === '/cart') return 'cart';
+    return 'home';
+  }, [location.pathname]);
 
   const handleNavigate = (screen: Screen) => {
-    if (screen === 'profile' || screen === 'order-status') {
-      if (!isAuthenticated) {
-        setPendingAction({ type: 'navigate', screen });
-        setCurrentScreen('customer-login');
-        return;
-      }
+    const map: Record<Screen, string> = {
+      home: '/',
+      menu: '/menu',
+      'order-status': '/order-status',
+      dashboard: '/admin',
+      'admin-login': '/admin-login',
+      'customer-login': '/login',
+      profile: '/profile',
+      cart: '/cart'
+    };
+
+    if ((screen === 'profile' || screen === 'order-status') && !isAuthenticated) {
+      setPendingAction({ type: 'navigate', screen });
+      navigate('/login');
+      return;
     }
-    setCurrentScreen(screen);
+    navigate(map[screen]);
   };
 
   const addToCart = (item: FoodItem) => {
     if (!isAuthenticated) {
       setPendingAction({ type: 'add-to-cart', item });
-      setCurrentScreen('customer-login');
+      navigate('/login');
       return;
     }
 
@@ -80,45 +107,53 @@ export default function App() {
   const placeOrder = () => {
     if (!isAuthenticated) {
       setIsCartOpen(false);
-      setCurrentScreen('customer-login');
+      navigate('/login');
       return;
     }
     setIsCartOpen(false);
-    setCurrentScreen('order-status');
+    navigate('/order-status');
   };
 
   const handleCustomerLogin = () => {
     setIsAuthenticated(true);
     if (pendingAction) {
       if (pendingAction.type === 'navigate') {
-        setCurrentScreen(pendingAction.screen);
+        handleNavigate(pendingAction.screen);
       } else if (pendingAction.type === 'add-to-cart') {
         addToCart(pendingAction.item);
-        setCurrentScreen('menu');
+        navigate('/menu');
       }
       setPendingAction(null);
     } else {
-      setCurrentScreen('home');
+      navigate('/');
     }
   };
 
   const handleCustomerLogout = () => {
     setIsAuthenticated(false);
     setIsAdmin(false);
-    setCurrentScreen('home');
+    setIsHQ(false);
     setCartItems([]);
+    navigate('/');
   };
 
   const handleAdminLogin = () => {
     setIsAdmin(true);
     setIsAuthenticated(true);
-    setCurrentScreen('dashboard');
+    navigate('/admin');
   };
 
   const handleAdminLogout = () => {
     setIsAdmin(false);
+    setIsHQ(false);
     setIsAuthenticated(false);
-    setCurrentScreen('home');
+    navigate('/');
+  };
+
+  const handleHQLogin = () => {
+    setIsHQ(true);
+    setIsAuthenticated(true);
+    navigate('/hq');
   };
 
   const handleAddFeedback = (f: Omit<Feedback, 'id' | 'timestamp'>) => {
@@ -143,9 +178,15 @@ export default function App() {
     setStaff(prev => [...prev, newMember]);
   };
 
+  const isHearthCommandRoute = 
+    location.pathname.startsWith('/admin') || 
+    location.pathname === '/admin-login' || 
+    location.pathname === '/hq' || 
+    location.pathname === '/hq-login';
+
   return (
     <div className="min-h-screen bg-surface text-on-surface selection:bg-primary-container selection:text-on-primary-container">
-      {currentScreen !== 'dashboard' && (
+      {!isHearthCommandRoute && (
         <Header 
           currentScreen={currentScreen} 
           onNavigate={handleNavigate} 
@@ -157,53 +198,85 @@ export default function App() {
       
       <AnimatePresence mode="wait">
         <motion.div
-          key={currentScreen}
+          key={location.pathname}
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 1.02 }}
           transition={{ duration: 0.3 }}
         >
-          {currentScreen === 'home' && (
-            <FeedPage 
-              onExplore={() => handleNavigate('menu')} 
-              onAddToCart={addToCart}
-              cartItems={cartItems}
-              onUpdateQuantity={updateQuantity}
-            />
-          )}
-          {currentScreen === 'menu' && (
-            <MenuPage 
-              foodItems={FOOD_ITEMS}
-              onAddToCart={addToCart} 
-              cartItems={cartItems}
-              onUpdateQuantity={updateQuantity}
-            />
-          )}
-          {currentScreen === 'order-status' && <OrderPage />}
-          {currentScreen === 'dashboard' && isAdmin && (
-            <DashboardPage 
-              orders={orders}
-              inventory={inventory}
-              staff={staff}
-              feedbacks={feedbacks}
-              updateOrderStatus={updateOrderStatus}
-              addStaff={addStaff}
-            />
-          )}
-          {currentScreen === 'admin-login' && <AdminLoginPage onLogin={handleAdminLogin} onBack={() => setCurrentScreen('home')} />}
-          {currentScreen === 'customer-login' && <LoginPage onLogin={handleCustomerLogin} onBack={() => setCurrentScreen('home')} />}
-          {currentScreen === 'profile' && <ProfilePage onFeedback={handleAddFeedback} onLogout={handleCustomerLogout} />}
-          {currentScreen === 'cart' && (
-            <CartPage 
-              cartItems={cartItems} 
-              onUpdateQuantity={updateQuantity} 
-              onPlaceOrder={placeOrder} 
-            />
-          )}
+          <Routes location={location}>
+            <Route path="/" element={
+              <FeedPage 
+                onExplore={() => handleNavigate('menu')} 
+                onAddToCart={addToCart}
+                cartItems={cartItems}
+                onUpdateQuantity={updateQuantity}
+              />
+            } />
+            <Route path="/menu" element={
+              <MenuPage 
+                foodItems={FOOD_ITEMS}
+                onAddToCart={addToCart} 
+                cartItems={cartItems}
+                onUpdateQuantity={updateQuantity}
+              />
+            } />
+            <Route path="/order-status" element={
+              isAuthenticated ? <OrderPage /> : <Navigate to="/login" />
+            } />
+            <Route path="/profile" element={
+              isAuthenticated ? <ProfilePage onFeedback={handleAddFeedback} onLogout={handleCustomerLogout} /> : <Navigate to="/login" />
+            } />
+            <Route path="/cart" element={
+              <CartPage 
+                cartItems={cartItems} 
+                onUpdateQuantity={updateQuantity} 
+                onPlaceOrder={placeOrder} 
+              />
+            } />
+            <Route path="/login" element={
+              <LoginPage onLogin={handleCustomerLogin} onBack={() => navigate('/')} />
+            } />
+            <Route path="/admin-login" element={
+              <AdminLoginPage onLogin={handleAdminLogin} onBack={() => navigate('/')} />
+            } />
+            <Route path="/hq-login" element={
+              <HQLoginPage onLogin={handleHQLogin} onBack={() => navigate('/')} />
+            } />
+            <Route path="/admin" element={
+              isAdmin ? (
+                <HearthCommandDashboard 
+                  orders={orders}
+                  inventory={inventory}
+                  staff={staff}
+                  feedbacks={feedbacks}
+                  updateOrderStatus={updateOrderStatus}
+                  addStaff={addStaff}
+                />
+              ) : <Navigate to="/admin-login" />
+            } />
+            <Route path="/admin/history" element={
+              isAdmin ? (
+                <HearthCommandDashboard 
+                  orders={orders}
+                  inventory={inventory}
+                  staff={staff}
+                  feedbacks={feedbacks}
+                  updateOrderStatus={updateOrderStatus}
+                  addStaff={addStaff}
+                  defaultTab="History"
+                />
+              ) : <Navigate to="/admin-login" />
+            } />
+            <Route path="/hq" element={
+              isHQ ? <HQCRMPage /> : <Navigate to="/hq-login" />
+            } />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
         </motion.div>
       </AnimatePresence>
 
-      {currentScreen !== 'dashboard' && (
+      {!isHearthCommandRoute && (
         <BottomNav 
           currentScreen={currentScreen} 
           onNavigate={handleNavigate} 
@@ -213,16 +286,26 @@ export default function App() {
         />
       )}
       
-      <CartSheet 
-        isOpen={isCartOpen} 
-        onClose={() => setIsCartOpen(false)} 
-        cartItems={cartItems}
-        onUpdateQuantity={updateQuantity}
-        onPlaceOrder={placeOrder}
-      />
+      {!isHearthCommandRoute && (
+        <CartSheet 
+          isOpen={isCartOpen} 
+          onClose={() => setIsCartOpen(false)} 
+          cartItems={cartItems}
+          onUpdateQuantity={updateQuantity}
+          onPlaceOrder={placeOrder}
+        />
+      )}
 
       <div className="fixed top-1/4 -right-24 w-96 h-96 bg-primary-container/10 blur-[120px] -z-10 rounded-full"></div>
       <div className="fixed bottom-1/4 -left-24 w-64 h-64 bg-tertiary/10 blur-[100px] -z-10 rounded-full"></div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
   );
 }

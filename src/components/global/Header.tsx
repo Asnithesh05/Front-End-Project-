@@ -55,18 +55,20 @@ export const Header = ({ onNavigate, currentScreen, isAdmin, isAuthenticated, on
       </button>
     </nav>
     <div className="flex items-center gap-2 md:gap-4">
-      {isAuthenticated ? (
+      {isAuthenticated && (
         <button 
           onClick={onLogout}
           className="p-2 text-primary-container hover:bg-primary-container/10 transition-colors rounded-full active:scale-95 duration-200 flex items-center gap-2"
+          title="Logout"
         >
           <LogOut size={20} />
           <span className="text-xs font-bold hidden lg:inline">Logout</span>
         </button>
-      ) : (
+      )}
+      {!isAdmin && (
         <button 
           onClick={() => onNavigate('admin-login')}
-          className="p-2 text-on-surface/60 hover:bg-primary-container/10 transition-colors rounded-full active:scale-95 duration-200"
+          className="p-2 text-primary-container hover:bg-primary-container/10 transition-colors rounded-full active:scale-95 duration-200"
           title="Admin Login"
         >
           <ShieldCheck size={24} />

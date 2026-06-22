@@ -52,4 +52,5 @@ export interface StaffMember {
   phone?: string;
   email?: string;
   address?: string;
+  terminationDate?: string;
 }
